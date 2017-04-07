@@ -133,6 +133,11 @@ def hedge_curve(net_value, benchmark_code):
     return hedge_res
 
 
+def returns_sta(net_value):
+    grouped = net_value.groupby(lambda x: x.split('-')[0])
+    return grouped.apply(lambda x:x.iloc[-1]/x.iloc[0]-1)
+
+
 
 
 
