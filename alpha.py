@@ -12,12 +12,6 @@ from WindPy import w
 w.start()
 
 
-class Position:
-    def __init__(self, price, position):
-        self.price = price
-        self.position = position
-
-
 def winsorize_series(se):
     q = se.quantile([0.025, 0.975])
     if isinstance(q, pd.Series) and len(q) == 2:
@@ -34,6 +28,21 @@ def standarlize(factor):
     factor = factor.dropna(how='all')
     factor_std = ((factor.T - factor.mean(axis=1)) / factor.std(axis=1)).T
     return factor_std
+
+
+def ic_caculate(factor, pctChange, period):
+    ic = []
+    index = factor.index
+    for i in range(factor.shape[0] - period):
+        ic_value = factor.ix[index[i]].corr(pctChange.ix[index[i + period]])
+        ic.append(ic_value)
+    return pd.Series(ic, index=index[:len(index) - period])
+
+
+def rankic(factor, pctchange, period):
+    factor_rank = factor.rank(axis=1)
+    pctchange_rank = pctchange.rank(axis=1)
+    return ic_caculate(factor_rank, pctchange_rank, period)
 
 
 def factor_handle(factor):
@@ -75,14 +84,14 @@ def group_backtest(factor, volume, close, group_num, quantile, fee):
     return pd.Series(net_value, index=factor.index[1:])
 
 
-def group_result(hh, dic):
+def group_result(pctchange, dic, period):
     net_value = dict()
     for s in dic.keys():
         group = dic[s]
-        zz = pd.Series([hh.iloc[i][dic[s][i - 1]].mean() for i in range(1, len(hh))]) + 1
+        zz = pd.Series([pctchange.iloc[i][dic[s][i - period]].mean() for i in range(period, len(pctchange))]) + 1
         net_value[s] = zz.cumprod()
     res = pd.DataFrame(net_value)
-    res.index = hh.index[1:]
+    res.index = pctchange.index[period:]
     return res
 
 
@@ -99,10 +108,20 @@ def generate_group(factor, group_num):
     return dic
 
 
-def quick_test(factor, pctChange, group_num):
+def mean_return(factor, pctchange, group_num, period):
+    dic = generate_group(factor, group_num)
+    group_return = dict()
+    pctchange = pctchange.ix[factor.index]
+    for key in dic.keys():
+        group_return[key] = pd.Series([pctchange.iloc[i][dic[key][i - period]].mean()
+                                       for i in range(period, len(pctchange))]).mean()
+    return pd.Series(group_return)
+
+
+def quick_test(factor, pctChange, group_num, period):
     dic = generate_group(factor, group_num)
     pctChange = pctChange.ix[factor.index]
-    res = group_result(pctChange, dic)
+    res = group_result(pctChange, dic, period)
     return res
 
 
