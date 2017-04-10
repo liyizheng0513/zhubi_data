@@ -148,4 +148,31 @@ def cap_neutral(factor, mkt_value):
     return new_factor
 
 
+def quantile_mkt_values(signal_df, mkt_df):
+    n_quantile = 10
+    # 统计十分位数
+    cols_mean = [i+1 for i in range(n_quantile)]
+    cols = cols_mean
 
+    mkt_value_means = pd.DataFrame(index=signal_df.index, columns=cols)
+
+    # 计算分组的市值分位数平均值
+    for dt in mkt_value_means.index:
+        if dt not in mkt_df.index:
+            continue
+        qt_mean_results = []
+
+        tmp_factor = signal_df.ix[dt].dropna()
+        tmp_mkt_value = mkt_df.ix[dt].dropna()
+        tmp_mkt_value = tmp_mkt_value.rank()/len(tmp_mkt_value)
+
+        pct_quantiles = 1.0/n_quantile
+        for i in range(n_quantile):
+            down = tmp_factor.quantile(pct_quantiles*i)
+            up = tmp_factor.quantile(pct_quantiles*(i+1))
+            i_quantile_index = tmp_factor[(tmp_factor<=up) & (tmp_factor>=down)].index
+            mean_tmp = tmp_mkt_value[i_quantile_index].mean()
+            qt_mean_results.append(mean_tmp)
+        mkt_value_means.ix[dt] = qt_mean_results
+    mkt_value_means.dropna(inplace=True)
+    return mkt_value_means.mean()
