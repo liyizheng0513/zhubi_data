@@ -8,7 +8,7 @@ Created on Fri Mar 31 09:33:07 2017
 import numpy as np
 import pandas as pd
 from WindPy import w
-
+import statsmodels.api as sm
 w.start()
 
 
@@ -138,6 +138,14 @@ def returns_sta(net_value):
     return grouped.apply(lambda x: x.iloc[-1]/x.iloc[0]-1)
 
 
+def cap_neutral(factor, mkt_value):
+    new_factor = factor.copy().dropna(how='all')
+    for i in range(new_factor.shape[0]):
+        a = new_factor.iloc[i].dropna()
+        mkt = mkt_value.iloc[i].ix[a.index]
+        resduies = sm.OLS(a, mkt).fit().resid
+        new_factor.iloc[i].ix[a.index] = resduies
+    return new_factor
 
 
 
