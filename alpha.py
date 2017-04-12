@@ -152,16 +152,16 @@ def industry_neutral(factor, industry_list):
     pass
 
 
-def t_value(factor, pctchange):
+def t_value(factor, pctchange, period):
     tvalues = []
     new_factor = factor.copy().dropna(how='all')
     pctchange_copy = pctchange.ix[new_factor.index]
-    for i in range(new_factor.shape[0] - 1):
+    for i in range(new_factor.shape[0] - period):
         factor_value = new_factor.iloc[i].dropna()
-        pct_chg = pctchange_copy.iloc[i + 1].ix[factor_value.index]
+        pct_chg = pctchange_copy.iloc[i + period].ix[factor_value.index]
         tvalue = sm.OLS(pct_chg, factor_value).fit().tvalues[0]
         tvalues.append(tvalue)
-    return tvalues
+    return pd.Series(tvalues, index=new_factor.index[:-period])
 
 
 def quantile_mkt_values(signal_df, mkt_df):
