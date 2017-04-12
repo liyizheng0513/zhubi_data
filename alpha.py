@@ -142,7 +142,8 @@ def cap_neutral(factor, mkt_value):
     new_factor = factor.copy().dropna(how='all')
     for i in range(new_factor.shape[0]):
         a = new_factor.iloc[i].dropna()
-        mkt = mkt_value.iloc[i].ix[a.index]
+        mkt = mkt_value.iloc[i].ix[a.index].dropna()
+        a = a[mkt.index]
         resduies = sm.OLS(a, mkt).fit().resid
         new_factor.iloc[i].ix[a.index] = resduies
     return new_factor
