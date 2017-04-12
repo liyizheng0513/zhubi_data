@@ -159,7 +159,8 @@ def t_value(factor, pctchange, period):
     pctchange_copy = pctchange.ix[new_factor.index]
     for i in range(new_factor.shape[0] - period):
         factor_value = new_factor.iloc[i].dropna()
-        pct_chg = pctchange_copy.iloc[i + period].ix[factor_value.index]
+        pct_chg = pctchange_copy.iloc[i + period].ix[factor_value.index].dropna()
+        factor_value = factor_value[pct_chg.index]
         results = sm.OLS(pct_chg, factor_value).fit()
         tvalue = results.tvalues[0]
         rsquare = results.rsquared
