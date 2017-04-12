@@ -154,14 +154,25 @@ def industry_neutral(factor, industry_list):
 
 def t_value(factor, pctchange, period):
     tvalues = []
+    rsquares = []
     new_factor = factor.copy().dropna(how='all')
     pctchange_copy = pctchange.ix[new_factor.index]
     for i in range(new_factor.shape[0] - period):
         factor_value = new_factor.iloc[i].dropna()
         pct_chg = pctchange_copy.iloc[i + period].ix[factor_value.index]
-        tvalue = sm.OLS(pct_chg, factor_value).fit().tvalues[0]
+        results = sm.OLS(pct_chg, factor_value).fit()
+        tvalue = results.tvalues[0]
+        rsquare = results.rsquared
         tvalues.append(tvalue)
-    return pd.Series(tvalues, index=new_factor.index[:-period])
+        rsquares.append(rsquare)
+    return pd.DataFrame({'tvalue': tvalues, 'rsquare': rsquares}, index=new_factor.index[:-period])
+
+
+def tvalue_sta(tvalues):
+    positive = tvalues[tvalues > 2].shape[0]
+    negtive = tvalues[tvalues < -2].shape[0]
+    total = tvalues.shape[0]
+    return [(positive + negtive + 0.0) / total, (positive + 0.0) / negtive]
 
 
 def quantile_mkt_values(signal_df, mkt_df):
