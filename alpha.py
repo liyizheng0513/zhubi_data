@@ -148,6 +148,22 @@ def cap_neutral(factor, mkt_value):
     return new_factor
 
 
+def industry_neutral(factor, industry_list):
+    pass
+
+
+def t_value(factor, pctchange):
+    tvalues = []
+    new_factor = factor.copy().dropna(how='all')
+    pctchange_copy = pctchange.ix[new_factor.index]
+    for i in range(new_factor.shape[0] - 1):
+        factor_value = new_factor.iloc[i].dropna()
+        pct_chg = pctchange_copy.iloc[i + 1].ix[factor_value.index]
+        tvalue = sm.OLS(pct_chg, factor_value).fit().tvalues[0]
+        tvalues.append(tvalue)
+    return tvalues
+
+
 def quantile_mkt_values(signal_df, mkt_df):
     n_quantile = 10
     # 统计十分位数
@@ -168,9 +184,10 @@ def quantile_mkt_values(signal_df, mkt_df):
 
         pct_quantiles = 1.0/n_quantile
         for i in range(n_quantile):
-            down = tmp_factor.quantile(pct_quantiles*i)
+            down = tmp_factor.quantile(
+                pct_quantiles*i)
             up = tmp_factor.quantile(pct_quantiles*(i+1))
-            i_quantile_index = tmp_factor[(tmp_factor<=up) & (tmp_factor>=down)].index
+            i_quantile_index = tmp_factor[(tmp_factor <= up) & (tmp_factor >= down)].index
             mean_tmp = tmp_mkt_value[i_quantile_index].mean()
             qt_mean_results.append(mean_tmp)
         mkt_value_means.ix[dt] = qt_mean_results
