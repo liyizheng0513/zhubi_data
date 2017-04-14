@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 """
 Created on Wed Mar 29 10:40:11 2017
 
@@ -84,13 +85,13 @@ def ts_argmin(df, window=10):
 def decay_linear(df, period=10):
     if df.isnull().values.any():
         df.fillna(method='ffill', inplace=True)
-        df.fillna(method='dfill', inplace=True)
+        df.fillna(method='bfill', inplace=True)
         df.fillna(value=0, inplace=True)
     na_lwma = np.zeros_like(df)
     na_lwma[:period, :] = df.ix[:period, :]
     na_series = df.as_matrix()
     divisor = df.as_matrix()
-    y = (np.arrange(period) + 1) * 1.0 / divisor
+    y = (np.arange(period) + 1) * 1.0 / divisor
     for row in range(period + 1, df.shape[0]):
         x = na_series[row - period + 1:row + 1, :]
         na_lwma[row, :] - (np.dot(x.T, y))
@@ -156,6 +157,7 @@ class Alphas(object):
         alpha = -1 * ts_rank(abs(delta(self.close, 7)),
                              60) * sign(delta(self.close, 7))
         alpha[adv20 >= self.volume] = -1
+        alpha = alpha.replace([-np.inf, np.inf], 0)
         return alpha
 
     # alpha008: (-1 * rank(((sum(open, 5) * sum(returns, 5)) -
@@ -238,8 +240,8 @@ class Alphas(object):
     #  alpha019:((-1 * sign(((close - delay(close, 7)) + delta(close, 7)))) *
 
     def alpha019(self):
-        return ((-1 * sign((self.close - delay(self.close, 7)) +
-                           delta(self.close, 7))) * (1 + rank(1 + ts_sum(self.returns, 250))))
+        return ((-1 * sign((self.close - delay(self.close, 7)) + \
+                delta(self.close, 7))) * (1 + rank(1 + ts_sum(self.returns, 250))))
 
     # alpha020: (((-1 * rank((open - delay(high, 1)))) * rank((open -
     # delay(close, 1)))) * rank((open -delay(low, 1))))
@@ -382,8 +384,9 @@ class Alphas(object):
     # alpha040: ((-1 * rank(stddev(high, 10))) * correlation(high, volume, 10))
 
     def alpha040(self):
-        return -1 * rank(stddev(self.high, 10)) * \
+        df = -1 * rank(stddev(self.high, 10)) * \
             correlation(self.high, self.volume, 10)
+        return df.replace([-np.inf, np.inf], 0)
 
     # alpha43: (ts_rank((volume / adv20), 20) * ts_rank((-1 * delta(close,
     # 7)), 8))
@@ -407,7 +410,7 @@ class Alphas(object):
     def alpha045(self):
         df = correlation(self.close, self.volume, 2)
         df = df.replace([-np.inf, np.inf], 0)
-        return -1 * (rank(sma(delay(self.close, 5), 20)) * df *
+        return -1 * (rank(sma(delay(self.close, 5), 20)) * df * \
                      rank(correlation(ts_sum(self.close, 5), ts_sum(self.close, 20), 2)))
 
     # alpha046: ((0.25 < (((delay(close, 20) - delay(close, 10)) / 10) - ((del
@@ -445,10 +448,6 @@ class Alphas(object):
     # alpha052: ((((-1 * ts_min(low, 5)) + delay(ts_min(low, 5), 5)) *
     # rank(((sum(returns, 240) -sum(returns, 20)) / 220))) * ts_rank(volume,
     # 5))
-
-    def alpha052(self):
-        return (((-1 * delta(ts_min(self.low, 5), 5)) * rank(((ts_sum(self.returns,
-                                                                      240) - ts_sum(self.returns, 20)) / 220))) * ts_rank(self.volume, 5))
 
     # alpha053:(-1 * delta((((close - low) - (high - close)) / (close - low)),
     # 9))
